@@ -14,7 +14,7 @@ from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPool2D #modues for 
 from keras.preprocessing.image import ImageDataGenerator #module for data augmentation
 from keras.models import Sequential #module for building CNN
 from keras.optimizers import RMSprop #model optimizer
-
+from keras.models import load_model
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 
@@ -25,7 +25,7 @@ warnings.filterwarnings('ignore')
 #################################################################################
 ap = argparse.ArgumentParser()
 ap.add_argument("-i","--train_data", required = True, help = "path to the training dataset")
-ap.add_argument("-b","--batch_size", required = False, default = 128 ,
+ap.add_argument("-b","--batch_size", required = False, type = int,  default = 128 ,
                 help = "batch size for CNN model training")
 ap.add_argument("-e","--epochs", required = False,type = int, default = 30,
                 help = "epochs for CNN model training")
@@ -33,12 +33,15 @@ ap.add_argument("-e","--epochs", required = False,type = int, default = 30,
 ap.add_argument("-v","--evaluation_flag", required = False, type = bool, default= False,
                 help = "Flag for running the model evaluation(including train_test_split, confusion Matrix")
 
+ap.add_argument("-m","--model_path", required = False , default = None,
+                help = "Path to the model you want to train")
+
 args = vars(ap.parse_args())
 #################################################################################
 
-print('*' * 200)
-print('Model training for digit hand writing app')
-print('*' * 200)
+print('*' * 100)
+print('\n\nModel training for digit hand writing app\n\n')
+print('*' * 100)
 
 #Data Loading & Checking
 data_dir = args["train_data"]
@@ -66,7 +69,16 @@ plt.show()
 
 #checking the missing values
 print("\n.......Check the missing values in training dataset.......")
-print('Missing values in training dataset : %d' %np.sum(train_df.isnull().sum()))
+nans = np.sum(train_df.isnull().sum())
+print('Missing values in training dataset : %d' %nans)
+
+if nans != 0:
+    k = input('Do you want to drop all the missing rows? y/n : ')
+    if k == 'y':
+        idx = pd.isnull(train_df).any(1).nonzero()[0]
+        train_df = train_df.drop(idx,axis=0)
+        print('Shape of training data after drop the missing rows :',train_df.shape)
+
 print("..........................................................\n")
 
 #checking the data type of pixels
@@ -113,28 +125,36 @@ dataGenerator.fit(x_train)
 
 print('\n\nModel building........\n')
 
+def build_model():
+    # Build CNN Model
+    # Use keras Sequential module to build our CNN model, it will stack the layer by adding one  layer a time.
+    model = Sequential()
+    # Conv2D will use the filter to extract the information from original image(2Darray)
+    model.add(Conv2D(filters=32, kernel_size=(3, 3), padding='same', activation='relu', input_shape=(28, 28, 1)))
+    model.add(Conv2D(filters=64, kernel_size=(3, 3), padding='same', activation='relu'))
+    # MaxPooling2D is used for downsampling the data. It can reduce the estimation effort and overfitting.
+    model.add(MaxPool2D(pool_size=(2, 2)))
+    # Dropout is set to ignore the nodes randomly. It will drop a propotion of the NN and improve the overfitting problem.
+    model.add(Dropout(0.3))
+    model.add(Conv2D(filters=64, kernel_size=(3, 3), activation='relu'))
+    model.add(MaxPool2D(pool_size=(2, 2)))
+    model.add(Dropout(0.4))
+    # Flatten will turn the final feature into 1D array(vector)
+    model.add(Flatten())
+    # Dense is used for convergence the result, which is more like a classifier.
+    model.add(Dense(128, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(10, activation='softmax'))
 
-#Build CNN Model
-#Use keras Sequential module to build our CNN model, it will stack the layer by adding one  layer a time.
-model = Sequential()
-#Conv2D will use the filter to extract the information from original image(2Darray)
-model.add(Conv2D(filters = 32,kernel_size=(3,3),padding = 'same',activation='relu', input_shape = (28,28,1)))
-model.add(Conv2D(filters = 64, kernel_size = (3,3), padding = 'same', activation = 'relu'))
-#MaxPooling2D is used for downsampling the data. It can reduce the estimation effort and overfitting.
-model.add(MaxPool2D(pool_size=(2,2)))
-#Dropout is set to ignore the nodes randomly. It will drop a propotion of the NN and improve the overfitting problem.
-model.add(Dropout(0.3))
-model.add(Conv2D(filters = 64, kernel_size = (3,3), activation = 'relu'))
-model.add(MaxPool2D(pool_size=(2,2)))
-model.add(Dropout(0.4))
-#Flatten will turn the final feature into 1D array(vector)
-model.add(Flatten())
-#Dense is used for convergence the result, which is more like a classifier.
-model.add(Dense(128,activation  = 'relu'))
-model.add(Dropout(0.5))
-model.add(Dense(10,activation = 'softmax'))
+    model.compile(loss="categorical_crossentropy", optimizer=RMSprop(), metrics=['accuracy'])
+    return model
 
-model.compile(loss = "categorical_crossentropy", optimizer = RMSprop(), metrics = ['accuracy'])
+
+model = None
+if args['model_path'] == None:
+    model = build_model()
+else :
+    model = load_model(args['model_path'])
 
 batch_size = args["batch_size"]
 epochs = args["epochs"]
@@ -196,7 +216,7 @@ model.fit_generator(dataGenerator.flow(train_df,train_y,batch_size = batch_size)
                     epochs = epochs, verbose = 2, steps_per_epoch = train_df.shape[0]/batch_size)
 
 
-print('\n\nTraining Done....Saving the model....\n')
+print('\n\nSaving the model....\n')
 model.save('mnist_model.h5')
-
+print('\n\nModel training done....\n')
 

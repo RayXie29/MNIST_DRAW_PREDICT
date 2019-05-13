@@ -18,20 +18,22 @@ ap.add_argument("-m","--model",required = True, help = "Path to the trained mode
 #################################################################################
 args = vars(ap.parse_args())
 
-print('*' * 200)
-print('Result prediction for digit hand writing app')
-print('*' * 200)
+print('*' * 100)
+print('\n\nTest data prediction for digit hand writing app\n\n')
+print('*' * 100)
 
+print("\n\nLoading the model........\n")
 #Load the digit recognizer model
 model = load_model(args['model'])
+print("\n\nLoading the test data........\n")
 test_df = pd.read_csv(args["test_data"])
 
 #process the test dataframe
-print("\n\nprocess the test data........\n")
+print("\n\nprocessing the test data........\n")
 test_df = test_df/255.0
 test_df = test_df.values.reshape(-1,28,28,1)
 
-print("\n\npredict the data.............\n")
+print("\n\npredicting the data.............\n")
 
 prediction = model.predict(test_df)
 prediction = np.argmax(prediction, axis = 1)
@@ -39,3 +41,5 @@ prediction = np.argmax(prediction, axis = 1)
 output = pd.DataFrame({'ImageId':np.arange(1,prediction.shape[0]+1,1), 'label':prediction})
 print("\n\nsaving the result.............\n")
 output.to_csv('prediction.csv',index = False)
+
+print("\n\nPredict test data done........\n")
