@@ -39,7 +39,7 @@ def digitLabeling(rois):
         cv2.imshow('roi(Label by press the digit number on keyboard)', temp)
         k = int(cv2.waitKey(0))
         labels.append(k-48)
-
+        print("input label : ", k-48)
         cv2.destroyWindow('roi(Label by press the digit number on keyboard)')
 
     return labels

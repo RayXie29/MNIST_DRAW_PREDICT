@@ -52,6 +52,7 @@ def DigitDrawTrain(images):
             images.append(train_image)
             center[0] = -1, -1
             img = np.zeros((256, 256, 1), np.uint8)
+            print(f'Digit {count} finished')
             count += 1
 
         elif k == ord('r'):
@@ -94,22 +95,10 @@ if len(images) == 0:
 
 print("\n\nProcessing the data........\n")
 
+
 kernel = np.ones((3,3),np.uint8)
-
-length = len(images)
-for i in range(0,length):
-    erosion = cv2.erode(images[i],kernel,iterations=1)
-    erosion = erosion.reshape(28,28,1)
-    images.append(erosion)
-
-for i in range(0,length):
-    dilation = cv2.dilate(images[i], kernel, iterations=1)
-    dilation = dilation.reshape(28,28,1)
-    images.append(dilation)
-
-
-label = np.arange(0,length,1)
-expandingData(label,images)
+labels = np.arange(0,len(images),1)
+labels = expandingData(images,labels)
 images = np.asarray(images).reshape(-1,28,28,1)
 
 print("\n\nLoading the model........\n")
