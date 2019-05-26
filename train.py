@@ -13,7 +13,7 @@ from keras.utils.np_utils import to_categorical #module for one-hot-encodgin
 from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPool2D #modues for building CNN
 from keras.preprocessing.image import ImageDataGenerator #module for data augmentation
 from keras.models import Sequential #module for building CNN
-from keras.optimizers import RMSprop #model optimizer
+from keras.optimizers import adadelta
 from keras.models import load_model
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
@@ -36,12 +36,18 @@ ap.add_argument("-v","--evaluation_flag", required = False, type = bool, default
 ap.add_argument("-m","--model_path", required = False , default = None,
                 help = "Path to the model you want to train")
 
+ap.add_argument("-s","--show_flag", required = False, type = bool, default = True,
+                help = "Flag for showing the data, training... detail information or not")
+
 args = vars(ap.parse_args())
 #################################################################################
 
 print('*' * 100)
 print('\n\nModel training for digit hand writing app\n\n')
 print('*' * 100)
+
+show_flag = args["show_flag"]
+
 
 #Data Loading & Checking
 data_dir = args["train_data"]
@@ -50,22 +56,25 @@ data_dir = args["train_data"]
 train_df = pd.read_csv(data_dir)
 print('Shape of training data : ', train_df.shape)
 
-#Check out some detail of training dataset
-print("........First 5 rows of data........")
-print(train_df.head(5))
-print("....................................")
+if show_flag == True:
+    # Check out some detail of training dataset
+    print("........First 5 rows of data........")
+    print(train_df.head(5))
+    print("....................................")
+
 
 train_label = train_df.label
 train_df = train_df.drop(['label'], axis = 1)
 
-#check the counts in label
-print('\n\nTraining labels bar plot...........')
-plt.figure(figsize=(8,6))
-plt.bar(np.arange(0,10,1),train_label.value_counts().sort_index().values)
-plt.xlabel('labels')
-plt.ylabel('count')
-plt.title('label counts in training dataset')
-plt.show()
+if show_flag == True:
+    # check the counts in label
+    print('\n\nTraining labels bar plot...........')
+    plt.figure(figsize=(8, 6))
+    plt.bar(np.arange(0, 10, 1), train_label.value_counts().sort_index().values)
+    plt.xlabel('labels')
+    plt.ylabel('count')
+    plt.title('label counts in training dataset')
+    plt.show()
 
 #checking the missing values
 print("\n.......Check the missing values in training dataset.......")
@@ -81,10 +90,11 @@ if nans != 0:
 
 print("..........................................................\n")
 
-#checking the data type of pixels
-print("\n.......Check the data describe.......")
-print(train_df.iloc[0].describe())
-print(".......................................\n")
+if show_flag == True:
+    # checking the data type of pixels
+    print("\n.......Check the data describe.......")
+    print(train_df.iloc[0].describe())
+    print(".......................................\n")
 
 #data preparation
 #data normalization
@@ -97,10 +107,11 @@ train_df = train_df/255.0
 #The 1 means the images are grayscale
 train_df = train_df.values.reshape(-1,28,28,1)
 
-print("\ncheck the picture of data...........\n\n")
-plt.imshow(train_df[3][:,:,0],cmap = plt.cm.binary)
-plt.title('label : %d' % train_label[3])
-plt.show()
+if show_flag == True:
+    print("\ncheck the picture of data...........\n\n")
+    plt.imshow(train_df[3][:, :, 0], cmap=plt.cm.binary)
+    plt.title('label : %d' % train_label[3])
+    plt.show()
 
 #one hot encoding the training labels
 #There will be 10 classes in the label ( 0 ~ 9)
@@ -146,7 +157,7 @@ def build_model():
     model.add(Dropout(0.5))
     model.add(Dense(10, activation='softmax'))
 
-    model.compile(loss="categorical_crossentropy", optimizer=RMSprop(), metrics=['accuracy'])
+    model.compile(loss="categorical_crossentropy", optimizer= adadelta(), metrics=['accuracy'])
     return model
 
 
@@ -174,40 +185,42 @@ if args["evaluation_flag"] == True:
     print("Total loss: {}", format(score[0]))
     print("Total accuracy: {}", format(score[1]))
 
-    print('\n\nAccuracy & Loss plot\n')
+    if show_flag == True:
+        print('\n\nAccuracy & Loss plot\n')
 
-    plt.figure(figsize=(10, 12))
+        plt.figure(figsize=(10, 12))
 
-    plt.subplot(2, 1, 1)
-    plt.plot(history.history['acc'])
-    plt.plot(history.history['val_acc'])
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.legend(['training accuracy', 'validation accuracy'])
-    plt.title('Accuracy v.s. Epoch')
+        plt.subplot(2, 1, 1)
+        plt.plot(history.history['acc'])
+        plt.plot(history.history['val_acc'])
+        plt.xlabel('Epoch')
+        plt.ylabel('Accuracy')
+        plt.legend(['training accuracy', 'validation accuracy'])
+        plt.title('Accuracy v.s. Epoch')
 
-    plt.subplot(2, 1, 2)
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend(['training loss', 'validation loss'])
-    plt.title('Loss v.s. Epoch')
-    plt.show()
+        plt.subplot(2, 1, 2)
+        plt.plot(history.history['loss'])
+        plt.plot(history.history['val_loss'])
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.legend(['training loss', 'validation loss'])
+        plt.title('Loss v.s. Epoch')
+        plt.show()
 
-    print('\n\nConfusion Matrix plot\n')
-    y_prediction = model.predict(x_val)
-    # np argmax will turn the one hot encoding vector into just one number which is our label
-    y_prediction = np.argmax(y_prediction, axis=1)
-    y_true = np.argmax(y_val, axis=1)
-    confusionMat = confusion_matrix(y_true, y_prediction)
+        print('\n\nConfusion Matrix plot\n')
+        y_prediction = model.predict(x_val)
+        # np argmax will turn the one hot encoding vector into just one number which is our label
+        y_prediction = np.argmax(y_prediction, axis=1)
+        y_true = np.argmax(y_val, axis=1)
+        confusionMat = confusion_matrix(y_true, y_prediction)
 
-    plt.figure(figsize=(12, 10))
-    sns.heatmap(confusionMat, cmap=plt.cm.summer, annot=True)
-    plt.title('Confusion Matrix of CNN Model')
-    plt.xlabel('Prediction label')
-    plt.ylabel('True label')
-    plt.show()
+        plt.figure(figsize=(12, 10))
+        sns.heatmap(confusionMat, cmap=plt.cm.summer, annot=True)
+        plt.title('Confusion Matrix of CNN Model')
+        plt.xlabel('Prediction label')
+        plt.ylabel('True label')
+        plt.show()
+
 
 
 print('\n\nModel training........\n')

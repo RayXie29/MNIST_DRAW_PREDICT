@@ -11,6 +11,18 @@ import copy
 import sys
 warnings.filterwarnings('ignore')
 
+
+#Arguments
+#################################################################################
+ap = argparse.ArgumentParser()
+ap.add_argument("-m","--model_path",required = True, help = "Path to the model you want to train")
+ap.add_argument("-b","--batch_size",required = False, type = int, default= 1,
+                help = "Batch size for model training")
+ap.add_argument("-e","--epochs", required = False, type = int, default = 50,
+                help = 'Epochs for model training')
+args = vars(ap.parse_args())
+#################################################################################
+
 def DrawMouseEvent(event, x, y, flags, param):
 
     if event == cv2.EVENT_MOUSEMOVE and flags == cv2.EVENT_FLAG_LBUTTON:
@@ -24,7 +36,7 @@ def DigitDrawTrain(images):
 
     cv2.namedWindow("Digit Drawing(Press q to stop the drawing)", cv2.WINDOW_NORMAL)
     cv2.setMouseCallback("Digit Drawing(Press q to stop the drawing)",DrawMouseEvent,center)
-
+    count = 0
     while(1):
         cv2.imshow("Digit Drawing(Press q to stop the drawing)", img)
         k = cv2.waitKey(1)
@@ -40,6 +52,7 @@ def DigitDrawTrain(images):
             images.append(train_image)
             center[0] = -1, -1
             img = np.zeros((256, 256, 1), np.uint8)
+            count += 1
 
         elif k == ord('r'):
             center[0] = -1, -1
@@ -53,17 +66,19 @@ def DigitDrawTrain(images):
 
     cv2.destroyAllWindows()
 
+def expandingData(rois,labels):
+    extend_labels = np.concatenate((labels, labels))
+    extend_labels = to_categorical(extend_labels, 10)
 
-#Arguments
-#################################################################################
-ap = argparse.ArgumentParser()
-ap.add_argument("-i","--model_path",required = True, help = "Path to the model you want to train")
-ap.add_argument("-b","--batch_size",required = False, type = int, default= 1,
-                help = "Batch size for model training")
-ap.add_argument("-e","--epochs", required = False, type = int, default = 50,
-                help = 'Epochs for model training')
-args = vars(ap.parse_args())
-#################################################################################
+    kernel = np.ones((3, 3), np.uint8)
+    rois_len = len(rois)
+
+    for i in range(0, rois_len):
+        dilation = cv2.dilate(rois[i], kernel, iterations=1)
+        dilation = dilation.reshape(28, 28, 1)
+        rois.append(dilation)
+
+    return extend_labels
 
 print('*' * 100)
 print("\n\nDraw for model training! press p for data submit, r for re-drawing the picture and q for end the program")
@@ -94,9 +109,7 @@ for i in range(0,length):
 
 
 label = np.arange(0,length,1)
-labels = np.concatenate((label,label))
-labels = np.concatenate((labels,label))
-labels = to_categorical(labels,10)
+expandingData(label,images)
 images = np.asarray(images).reshape(-1,28,28,1)
 
 print("\n\nLoading the model........\n")

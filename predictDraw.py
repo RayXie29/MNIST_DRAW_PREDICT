@@ -55,7 +55,7 @@ def DigitDrawPredict(model):
 #Arguments
 #################################################################################
 ap = argparse.ArgumentParser()
-ap.add_argument("-i","--model",required = True, help = "Path to the trained model")
+ap.add_argument("-m","--model",required = True, help = "Path to the trained model")
 args = vars(ap.parse_args())
 #################################################################################
 
